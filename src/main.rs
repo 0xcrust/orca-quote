@@ -7,8 +7,9 @@ async fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
 
-    let output = quote::get_quote().await?;
-    println!("Output: {}", output);
+    let (quote, slippage_adjusted_quote) = quote::get_quote().await?;
+    println!("Quote: {}", quote);
+    println!("Slippage_adjusted_quote: {}", slippage_adjusted_quote);
 
     Ok(())
 }

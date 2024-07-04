@@ -51,7 +51,8 @@ fn get_environment_variables() -> Result<WhirlpoolArbState> {
     })
 }
 
-pub async fn get_quote() -> anyhow::Result<u64> {
+/// Returns `(quote, slippage_adjusted_quote)`
+pub async fn get_quote() -> anyhow::Result<(u64, u64)> {
     let arb_state: WhirlpoolArbState = get_environment_variables().unwrap();
     let pools = api::get_whirlpools(arb_state.override_cache).await?;
 
@@ -123,8 +124,19 @@ pub async fn get_quote() -> anyhow::Result<u64> {
     } else {
         swap_result.amount_a
     };
+    let (amount_in, amount_out) = if a_to_b == amount_specified_is_input {
+        (swap_result.amount_a, swap_result.amount_b)
+    } else {
+        (swap_result.amount_b, swap_result.amount_a)
+    };
 
-    Ok(quote)
+    let slippage_adjusted_quote = calculate_swap_amounts_from_quote(
+        amount_in,
+        amount_out,
+        arb_state.slippage,
+        amount_specified_is_input,
+    );
+    Ok((quote, slippage_adjusted_quote))
 }
 
 /// The maximum number of tick-arrays that can traversed across in a swap
@@ -243,7 +255,6 @@ fn get_tick_array_address(program_id: &Pubkey, whirlpool: &Pubkey, start_tick: i
 }
 
 /// Returns the other_amount_threshhold
-#[allow(unused)]
 fn calculate_swap_amounts_from_quote(
     est_amount_in: u64,
     est_amount_out: u64,
@@ -259,7 +270,6 @@ fn calculate_swap_amounts_from_quote(
 
 // todo: slippage in form of percentage numerator and denominator. Currently we just
 // specify a numerator and assume a denominator of 100
-#[allow(unused)]
 fn adjust_for_slippage(amount: u64, slippage: f64, adjust_up: bool) -> u64 {
     if adjust_up {
         ((amount as f64).mul(slippage.add(100.0)).div(100.0)) as u64
