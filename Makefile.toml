@@ -1,0 +1,7 @@
+[tasks.quote_js]
+args = ["js/src/main.ts"]
+command = "ts-node"
+
+[tasks.quote_js2]
+args = ["--exec", "npx", "ts-node", "js/src/main.ts"]
+command = "nodemon"
